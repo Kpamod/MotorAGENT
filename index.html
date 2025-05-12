@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Special Induction Motor Selection Tool</title>
+    <!-- Tailwind CSS -->
+   <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
+    <style>
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        /* Animation for form transitions */
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Custom badge styles */
+        .badge-ct {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+        
+        .badge-cp {
+            background-color: #f3e8ff;
+            color: #6b21a8;
+        }
+        
+        .badge-cooling {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-4xl mx-auto">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-gray-900">Special Induction Motor Selection Tool</h1>
+                <p class="mt-2 text-lg text-gray-600">
+                    Compare motor solutions from ABB, Siemens, and WEG
+                </p>
+            </div>
+
+            <div id="form-container" class="bg-white shadow rounded-lg p-6">
+                <form id="motor-form" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Torque Inputs -->
+                        <div class="space-y-2">
+                            <label for="minTorque" class="block text-sm font-medium text-gray-700">
+                                Torque at Minimum Speed (Nm)
+                            </label>
+                            <input
+                                type="number"
+                                id="minTorque"
+                                name="minTorque"
+                                step="0.1"
+                                class="block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                required
+                            >
+                            <p id="minTorque-error" class="text-red-500 text-xs hidden"></p>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label for="baseTorque" class="block text-sm font-medium text-gray-700">
+                                Torque at Base Speed (Nm)
+                            </label>
+                            <input
+                                type="number"
+                                id="baseTorque"
+                                name="baseTorque"
+                                step="0.1"
+                                class="block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                required
+                            >
+                            <p id="baseTorque-error" class="text-red-500 text-xs hidden"></p>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label for="maxTorque" class="block text-sm font-medium text-gray-700">
+                                Torque at Maximum Speed (Nm)
+                            </label>
+                            <input
+                                type="number"
+                                id="maxTorque"
+                                name="maxTorque"
+                                step="0.1"
+                                class="block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                required
+                            >
+                            <p id="maxTorque-error" class="text-red-500 text-xs hidden"></p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- RPM Inputs -->
+                        <div class="space-y-2">
+                            <label for="minRPM" class="block text-sm font-medium text-gray-700">
+                                Minimum RPM
+                            </label>
+                            <input
+                                type="number"
+                                id="minRPM"
+                                name="minRPM"
+                                class="block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                required
+                            >
+                            <p id="minRPM-error" class="text-red-500 text-xs hidden"></p>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label for="maxRPM" class="block text-sm font-medium text-gray-700">
+                                Maximum RPM
+                            </label>
+                            <input
+                                type="number"
+                                id="maxRPM"
+                                name="maxRPM"
+                                class="block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                required
+                            >
+                            <p id="maxRPM-error" class="text-red-500 text-xs hidden"></p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Load Type -->
+                        <div class="space-y-2">
+                            <label for="loadType" class="block text-sm font-medium text-gray-700">
+                                Load Type
+                            </label>
+                            <select
+                                id="loadType"
+                                name="loadType"
+                                class="block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                            >
+                                <option value="constant">Constant Torque</option>
+                                <option value="square">Square Law Load</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+
+                        <!-- Application Type -->
+                        <div class="space-y-2">
+                            <label for="applicationType" class="block text-sm font-medium text-gray-700">
+                                Application Type
+                            </label>
+                            <select
+                                id="applicationType"
+                                name="applicationType"
+                                class="block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                            >
+                                <option value="conveyor">Conveyor</option>
+                                <option value="pump">Pump</option>
+                                <option value="fan">Fan</option>
+                                <option value="custom">Custom</option>
+                            </select>
+                        </div>
+
+                        <!-- Cooling Type -->
+                        <div class="space-y-2">
+                            <label for="coolingType" class="block text-sm font-medium text-gray-700">
+                                Cooling Type
+                            </label>
+                            <select
+                                id="coolingType"
+                                name="coolingType"
+                                class="block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                            >
+                                <option value="forced">Forced Cooled</option>
+                                <option value="self">Self Cooled</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Other Load Type Input (conditionally shown) -->
+                    <div id="otherLoadContainer" class="hidden">
+                        <label for="otherLoadType" class="block text-sm font-medium text-gray-700">
+                            Specify Load Type
+                        </label>
+                        <input
+                            type="text"
+                            id="otherLoadType"
+                            name="otherLoadType"
+                            class="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                        >
+                    </div>
+
+                    <div class="flex justify-end">
+                        <button
+                            type="submit"
+                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        >
+                            Calculate Motor Options
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div id="results-container" class="hidden mt-8 space-y-8">
+                <div class="bg-white shadow rounded-lg p-6">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-6">Motor Selection Recommendations</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="motor-results">
+                        <!-- Motor cards will be inserted here by JavaScript -->
+                    </div>
+                </div>
+
+                <div class="bg-white shadow rounded-lg p-6">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-6">Torque-Speed Profile</h2>
+                    
+                    <div class="h-64 md:h-80">
+                        <canvas id="torqueChart"></canvas>
+                    </div>
+                    
+                    <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-blue-50 p-3 rounded">
+                            <h4 class="text-sm font-medium text-blue-800">Constant Torque Zone</h4>
+                            <p id="ctZone" class="text-xs text-blue-600"></p>
+                        </div>
+                        <div class="bg-purple-50 p-3 rounded">
+                            <h4 class="text-sm font-medium text-purple-800">Constant Power Zone</h4>
+                            <p id="cpZone" class="text-xs text-purple-600"></p>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded">
+                            <h4 class="text-sm font-medium text-gray-800">Load Type</h4>
+                            <p id="loadTypeDisplay" class="text-xs text-gray-600"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-center space-x-4">
+                    <button
+                        id="new-calculation"
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                    >
+                        New Calculation
+                    </button>
+                    <button
+                        id="pdf-export"
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                    >
+                        Export as PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const form = document.getElementById('motor-form');
+        const formContainer = document.getElementById('form-container');
+        const resultsContainer = document.getElementById('results-container');
+        const motorResults = document.getElementById('motor-results');
+        const newCalculationBtn = document.getElementById('new-calculation');
+        const pdfExportBtn = document.getElementById('pdf-export');
+        const loadTypeSelect = document.getElementById('loadType');
+        const otherLoadContainer = document.getElementById('otherLoadContainer');
+        const ctZone = document.getElementById('ctZone');
+        const cpZone = document.getElementById('cpZone');
+        const loadTypeDisplay = document.getElementById('loadTypeDisplay');
+        let torqueChart = null;
+
+        // Event Listeners
+        form.addEventListener('submit', handleFormSubmit);
+        newCalculationBtn.addEventListener('click', resetForm);
+        pdfExportBtn.addEventListener('click', exportToPDF);
+        loadTypeSelect.addEventListener('change', toggleOtherLoadInput);
+
+        // Initialize
+        toggleOtherLoadInput();
+
+        // Toggle Other Load Type input
+        function toggleOtherLoadInput() {
+            if (loadTypeSelect.value === 'other') {
+                otherLoadContainer.classList.remove('hidden');
+            } else {
+                otherLoadContainer.classList.add('hidden');
+            }
+        }
+
+        // Form Validation
+        function validateForm() {
+            let isValid = true;
+            const fields = ['minTorque', 'baseTorque', 'maxTorque', 'minRPM', 'maxRPM'];
+            
+            // Clear previous errors
+            fields.forEach(field => {
+                const errorElement = document.getElementById(`${field}-error`);
+                errorElement.classList.add('hidden');
+                errorElement.textContent = '';
+                document.getElementById(field).classList.remove('border-red-500');
+            });
+
+            // Check required fields
+            fields.forEach(field => {
+                const inputElement = document.getElementById(field);
+                const value = inputElement.value;
+                
+                if (!value || isNaN(value)) {
+                    document.getElementById(`${field}-error`).textContent = 'Please enter a valid number';
+                    document.getElementById(`${field}-error`).classList.remove('hidden');
+                    inputElement.classList.add('border-red-500');
+                    isValid = false;
+                }
+            });
+
+            // Check RPM range
+            const minRPM = parseFloat(document.getElementById('minRPM').value);
+            const maxRPM = parseFloat(document.getElementById('maxRPM').value);
+            
+            if (minRPM >= maxRPM) {
+                document.getElementById('maxRPM-error').textContent = 'Maximum RPM must be greater than minimum RPM';
+                document.getElementById('maxRPM-error').classList.remove('hidden');
+                document.getElementById('maxRPM').classList.add('border-red-500');
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        // Handle Form Submission
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            
+            if (!validateForm()) {
+                return;
+            }
+
+            // Get form data
+            const formData = {
+                minTorque: parseFloat(document.getElementById('minTorque').value),
+                baseTorque: parseFloat(document.getElementById('baseTorque').value),
+                maxTorque: parseFloat(document.getElementById('maxTorque').value),
+                minRPM: parseFloat(document.getElementById('minRPM').value),
+                maxRPM: parseFloat(document.getElementById('maxRPM').value),
+                loadType: document.getElementById('loadType').value,
+                applicationType: document.getElementById('applicationType').value,
+                coolingType: document.getElementById('coolingType').value,
+                otherLoadType: document.getElementById('otherLoadType')?.value || ''
+            };
+
+            // Process data and show results
+            showResults(formData);
+        }
+
+        // Calculate Motor Specifications
+        function calculateMotorSpecs(formData) {
+            const baseRPM = (formData.minRPM + formData.maxRPM) / 2;
+            const powerKW = (formData.baseTorque * baseRPM) / 9549; // P = T * N / 9549
+            
+            // Determine pole count based on base RPM
+            let poleCount;
+            if (baseRPM > 1800) {
+                poleCount = 2;
+            } else if (baseRPM > 1200) {
+                poleCount = 4;
+            } else if (baseRPM > 900) {
+                poleCount = 6;
+            } else {
+                poleCount = 8;
+            }
+
+            // Simulate manufacturer recommendations
+            const manufacturers = ['ABB', 'Siemens', 'WEG'];
+            return manufacturers.map(manufacturer => {
+                // Add some variation to the recommendations
+                const variation = 1 + (Math.random() * 0.2 - 0.1); // ±10% variation
+                const ratedKW = Math.ceil(powerKW * variation * 10) / 10; // Round to 1 decimal
+                const ratedRPM = Math.round(baseRPM * variation);
+                
+                return {
+                    manufacturer,
+                    ratedKW,
+                    ratedRPM,
+                    poleCount,
+                    coolingType: formData.coolingType === 'forced' ? 'Forced Cooled' : 'Self Cooled',
+                    torqueZones: {
+                        constantTorque: `${formData.minRPM} - ${baseRPM.toFixed(0)} RPM`,
+                        constantPower: `${baseRPM.toFixed(0)} - ${formData.maxRPM} RPM`
+                    }
+                };
+            });
+        }
+
+        // Show Results
+        function showResults(formData) {
+            const motorOptions = calculateMotorSpecs(formData);
+
+            // Display motor recommendations
+            motorResults.innerHTML = '';
+            motorOptions.forEach((motor, index) => {
+                const motorCard = document.createElement('div');
+                motorCard.className = 'border rounded-lg p-4 hover:shadow-md transition-shadow';
+                motorCard.innerHTML = `
+                    <div class="flex justify-between items-start mb-3">
+                        <h3 class="text-lg font-medium text-gray-900">${motor.manufacturer}</h3>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium badge-cooling">
+                            ${motor.coolingType}
+                        </span>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-500">Rated Power:</span>
+                            <span class="text-sm font-medium">${motor.ratedKW} kW</span>
+                        </div>
+                        
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-500">Rated Speed:</span>
+                            <span class="text-sm font-medium">${motor.ratedRPM} RPM</span>
+                        </div>
+                        
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-500">Pole Count:</span>
+                            <span class="text-sm font-medium">${motor.poleCount}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 pt-4 border-t border-gray-200">
+                        <h4 class="text-sm font-medium text-gray-700 mb-2">Torque Zones</h4>
+                        <div class="space-y-2">
+                            <div class="flex items-center">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium badge-ct mr-2">
+                                    CT
+                                </span>
+                                <span class="text-xs text-gray-600">${motor.torqueZones.constantTorque}</span>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium badge-cp mr-2">
+                                    CP
+                                </span>
+                                <span class="text-xs text-gray-600">${motor.torqueZones.constantPower}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button class="w-full inline-flex justify-center items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            View Details
+                        </button>
+                    </div>
+                `;
+                motorResults.appendChild(motorCard);
+            });
+
+            // Display torque zones
+            const baseRPM = (formData.minRPM + formData.maxRPM) / 2;
+            ctZone.textContent = `${formData.minRPM} - ${baseRPM.toFixed(0)} RPM`;
+            cpZone.textContent = `${baseRPM.toFixed(0)} - ${formData.maxRPM} RPM`;
+
+            // Display load type
+            let loadTypeText = '';
+            if (formData.loadType === 'constant') {
+                loadTypeText = 'Constant Torque';
+            } else if (formData.loadType === 'square') {
+                loadTypeText = 'Square Law Load';
+            } else {
+                loadTypeText = formData.otherLoadType || 'Custom Load';
+            }
+            loadTypeDisplay.textContent = loadTypeText;
+
+            // Create torque-speed chart
+            createTorqueChart(formData);
+
+            // Show results and hide form
+            formContainer.classList.add('hidden');
+            resultsContainer.classList.remove('hidden');
+            resultsContainer.classList.add('fade-in');
+        }
+
+        // Create Torque-Speed Chart
+        function createTorqueChart(formData) {
+            const ctx = document.getElementById('torqueChart').getContext('2d');
+            const baseRPM = (formData.minRPM + formData.maxRPM) / 2;
+            const maxTorque = Math.max(formData.minTorque, formData.baseTorque, formData.maxTorque);
+            
+            // Destroy previous chart if exists
+            if (torqueChart) {
+                torqueChart.destroy();
+            }
+
+            torqueChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [formData.minRPM, baseRPM, formData.maxRPM],
+                    datasets: [{
+                        label: 'Torque (Nm)',
+                        data: [formData.minTorque, formData.baseTorque, formData.maxTorque],
+                        borderColor: '#3182ce',
+                        backgroundColor: '#3182ce',
+                        borderWidth: 2,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#3182ce',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Torque (Nm)'
+                            },
+                            suggestedMax: maxTorque * 1.2
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Speed (RPM)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `Torque: ${context.parsed.y} Nm at ${context.label} RPM`;
+                                }
+                            }
+                        },
+                        legend: {
+                            display: false
+                        },
+                        annotation: {
+                            annotations: {
+                                line1: {
+                                    type: 'line',
+                                    yMin: 0,
+                                    yMax: maxTorque * 1.2,
+                                    xMin: baseRPM,
+                                    xMax: baseRPM,
+                                    borderColor: 'rgb(136, 132, 216)',
+                                    borderWidth: 2,
+                                    borderDash: [6, 6],
+                                    label: {
+                                        content: 'Base Speed',
+                                        enabled: true,
+                                        position: 'top'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Reset Form
+        function resetForm() {
+            form.reset();
+            formContainer.classList.remove('hidden');
+            resultsContainer.classList.add('hidden');
+            otherLoadContainer.classList.add('hidden');
+            
+            // Clear any error states
+            document.querySelectorAll('.border-red-500').forEach(el => {
+                el.classList.remove('border-red-500');
+            });
+            
+            document.querySelectorAll('[id$="-error"]').forEach(el => {
+                el.classList.add('hidden');
+            });
+        }
+
+        // Export to PDF (simulated - would need a library like jsPDF in a real implementation)
+        function exportToPDF() {
+            alert('In a real implementation, this would generate a PDF with the motor selection results. This would require integrating a library like jsPDF or using a server-side solution.');
+        }
+    </script>
+</body>
+</html>
